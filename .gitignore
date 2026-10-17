@@ -1,0 +1,26 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Python cache & testing
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Keep .gitkeep files everywhere
+!.gitkeep
+
+# Raw data images and runtime snapshots
+data/raw/*
+!data/raw/**/.gitkeep
+data/snapshots/*
+!data/snapshots/.gitkeep
+
+# CSV files except data/features.csv
+*.csv
+!data/features.csv
+
+# Internal backup
+.backup_future_phases/
