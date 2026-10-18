@@ -25,6 +25,8 @@ from qualiscan.inspect_item import DEFAULT_RULES, inspect
 from qualiscan.segment import segment_items
 from qualiscan.tracker import CentroidTracker
 from qualiscan.zone import TriggerLine
+from qualiscan.identify import load_model
+from qualiscan.profiles import load_profiles
 
 # Snapshot output directory
 REPO_ROOT = CV_SERVICE_DIR.parent
@@ -90,6 +92,8 @@ def main() -> None:
         default=None,
         help="Optional path to a custom JSON rules file",
     )
+    parser.add_argument("--model", type=str, default="models/identifier.joblib", help="Identifier model path")
+    parser.add_argument("--profiles", type=str, default="profiles/", help="Product profile directory")
     parser.add_argument(
         "--no-display",
         action="store_true",
@@ -108,6 +112,17 @@ def main() -> None:
 
     # Load inspection rules
     rules = load_rules(args.rules)
+    model_path = Path(args.model)
+    if not model_path.is_absolute():
+        model_path = CV_SERVICE_DIR / model_path
+    model = load_model(model_path) if model_path.is_file() else None
+    if model is None:
+        print(f"Warning: identifier model '{model_path}' not found; using legacy rules inspection.")
+    profiles_path = Path(args.profiles)
+    if not profiles_path.is_absolute():
+        profiles_path = CV_SERVICE_DIR / profiles_path
+    profiles = load_profiles(profiles_path)
+    reference_path = str(profiles_path / "card_reference.png")
 
     # Initialize tracker and trigger line
     tracker = CentroidTracker(max_distance=80.0, max_disappeared=15)
@@ -154,6 +169,8 @@ def main() -> None:
     pass_count = 0
     reject_count = 0
     track_verdicts: Dict[int, str] = {}
+    track_products: Dict[int, tuple] = {}
+    product_counts: Dict[str, Dict[str, int]] = {}
 
     prev_time = time.time()
     fps = 0.0
@@ -210,10 +227,15 @@ def main() -> None:
                 track.item.center,
                 frame.shape
             ):
-                result = inspect(track.item, rules)
+                result = inspect(track.item, rules, model=model, profiles=profiles, reference_path=reference_path)
                 track.inspected = True
                 verdict = result["verdict"]
                 track_verdicts[track.id] = verdict
+                product = result.get("product", "unknown")
+                confidence = float(result.get("confidence", 0.0))
+                track_products[track.id] = (product, confidence)
+                if verdict in ("PASS", "REJECT"):
+                    product_counts.setdefault(product, {"PASS": 0, "REJECT": 0})[verdict] += 1
 
                 if verdict == "PASS":
                     pass_count += 1
@@ -230,6 +252,8 @@ def main() -> None:
                     "track_id": track.id,
                     "timestamp": iso_ts,
                     "verdict": verdict,
+                    "product": product,
+                    "confidence": round(confidence, 4),
                     "failed_checks": result["failed_checks"],
                     "area": round(float(track.item.area), 2),
                     "circularity": round(float(track.item.circularity), 4),
@@ -284,7 +308,10 @@ def main() -> None:
                 verdict = track_verdicts.get(track.id, None)
 
                 # Color coding: Blue = not inspected, Green = PASS, Red = REJECT
-                if not track.inspected or verdict is None:
+                if verdict == "UNKNOWN":
+                    color = (150, 150, 150)
+                    status_text = "UNKNOWN"
+                elif not track.inspected or verdict is None:
                     color = (255, 160, 0)  # Blue/Orange in BGR
                     status_text = "UNINSPECTED"
                 elif verdict == "PASS":
@@ -295,7 +322,8 @@ def main() -> None:
                     status_text = "REJECT"
 
                 cv2.rectangle(display_frame, (x, y), (x + w, y + h), color, 2)
-                label = f"ID:{track.id} [{status_text}]"
+                product, confidence = track_products.get(track.id, ("?", 0.0))
+                label = f"{product} {confidence:.2f} | ID:{track.id} [{status_text}]"
                 label_y = max(20, y - 6)
                 cv2.putText(
                     display_frame,
@@ -309,7 +337,7 @@ def main() -> None:
                 )
 
             # Top HUD banner for counts and FPS
-            hud_h = 36
+            hud_h = 58
             hud = np.zeros((hud_h, w_f, 3), dtype=np.uint8)
             hud[:] = (20, 24, 30)
 
@@ -329,6 +357,8 @@ def main() -> None:
                 1,
                 cv2.LINE_AA
             )
+            per_product = "  ".join(f"{product}: P{counts['PASS']}/R{counts['REJECT']}" for product, counts in sorted(product_counts.items()))
+            cv2.putText(hud, per_product[:180], (12, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.43, (180, 220, 255), 1, cv2.LINE_AA)
 
             annotated_screen = np.vstack([hud, display_frame])
             cv2.imshow(window_name, annotated_screen)

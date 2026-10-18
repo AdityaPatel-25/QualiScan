@@ -3,10 +3,15 @@
 Applies configurable size, color, and shape defect checks against segmented items.
 """
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from qualiscan.checks import CheckResult, check_color, check_shape, check_size
 from qualiscan.segment import Item
+from qualiscan.identify import identify
+from qualiscan.product_checks import check_broken, check_burnt, check_dent, check_orientation, check_template_match
+import cv2
+import numpy as np
 
 # Default placeholder rules for general inspection
 DEFAULT_RULES: Dict[str, Any] = {
@@ -26,7 +31,7 @@ DEFAULT_RULES: Dict[str, Any] = {
 }
 
 
-def inspect(item: Item, rules: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def inspect(item: Item, rules: Optional[Dict[str, Any]] = None, model: Any = None, profiles: Optional[Dict[str, dict]] = None, reference_path: Optional[str] = None) -> Dict[str, Any]:
     """Inspects a segmented item using size, color, and shape rules.
 
     Args:
@@ -41,6 +46,39 @@ def inspect(item: Item, rules: Optional[Dict[str, Any]] = None) -> Dict[str, Any
             - checks: dictionary of CheckResult objects for each evaluated rule
             - measurements: area, circularity, aspect_ratio, mean_hsv
     """
+    if model is not None:
+        product, confidence = identify(item, model)
+        if product == "unknown":
+            return {"product": product, "confidence": confidence, "verdict": "UNKNOWN", "failed_checks": [], "checks": {}, "check_results": {}}
+        profiles = profiles or {}
+        profile = profiles.get(product)
+        if profile is None:
+            return {"product": product, "confidence": confidence, "verdict": "UNKNOWN", "failed_checks": [], "checks": {}, "check_results": {}}
+        checks: Dict[str, CheckResult] = {}
+        enabled = set(profile.get("enabled_checks", []))
+        if "size" in enabled:
+            checks["size"] = check_size(item.area, profile["min_area"], profile["max_area"])
+        if "color" in enabled:
+            checks["color"] = check_color(item.mean_hsv, profile["h_range"], profile["s_range"], profile["v_range"])
+        if "shape" in enabled:
+            checks["shape"] = check_shape(item.circularity, item.aspect_ratio, profile["circularity_range"], profile["aspect_ratio_range"])
+        if "dent" in enabled:
+            checks["dent"] = check_dent(item.solidity, profile["min_solidity"])
+        if "orientation" in enabled:
+            rect = cv2.minAreaRect(item.contour)
+            angle = float(rect[2]) + (90.0 if rect[1][0] < rect[1][1] else 0.0)
+            checks["orientation"] = check_orientation(angle, profile["max_skew_deg"])
+        if "template_match" in enabled and reference_path and Path(reference_path).is_file():
+            checks["template_match"] = check_template_match(item.crop, cv2.imread(reference_path), profile["max_diff_ratio"])
+        if "broken" in enabled:
+            checks["broken"] = check_broken(item.solidity, item.area, profile["expected_area_range"], profile["min_solidity"])
+        if "burnt" in enabled:
+            crop_gray = cv2.cvtColor(item.crop, cv2.COLOR_BGR2GRAY)
+            dark_fraction = float(np.count_nonzero(crop_gray < profile["dark_value_threshold"])) / crop_gray.size
+            checks["burnt"] = check_burnt(item.mean_hsv[2], dark_fraction, profile["max_dark_fraction"])
+        failed = [name for name, result in checks.items() if not result.passed]
+        return {"product": product, "confidence": confidence, "verdict": "REJECT" if failed else "PASS", "failed_checks": failed, "checks": checks, "check_results": checks}
+
     if rules is None:
         return {
             "verdict": "UNCHECKED",

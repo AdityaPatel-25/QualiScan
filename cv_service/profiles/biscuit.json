@@ -1,0 +1,17 @@
+{
+  "product": "biscuit",
+  "_note": "PLACEHOLDER thresholds; calibrate with production samples.",
+  "min_area": 800,
+  "max_area": 35000,
+  "h_range": [0, 40],
+  "s_range": [20, 255],
+  "v_range": [40, 255],
+  "circularity_range": [0.3, 1.05],
+  "aspect_ratio_range": [0.8, 2.2],
+  "solidity_range": [0.75, 1.0],
+  "min_solidity": 0.75,
+  "expected_area_range": [800, 35000],
+  "max_dark_fraction": 0.15,
+  "dark_value_threshold": 60,
+  "enabled_checks": ["size", "color", "shape", "broken", "burnt"]
+}

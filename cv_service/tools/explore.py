@@ -29,7 +29,23 @@ else:
     DATA_DIR = Path("data").resolve()
 
 CSV_PATH = DATA_DIR / "features.csv"
-CSV_COLUMNS = ["product", "quality", "area", "circularity", "aspect_ratio", "h", "s", "v"]
+CSV_COLUMNS = ["group", "product", "quality", "area", "circularity", "aspect_ratio", "solidity", "edge_density", "v_std", "h", "s", "v"]
+
+
+def prepare_csv(filepath: Path) -> None:
+    """Migrate an existing dataset header before writing the new feature format."""
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    if filepath.exists() and filepath.stat().st_size:
+        with filepath.open("r", encoding="utf-8", newline="") as stream:
+            old_header = next(csv.reader(stream), [])
+        if old_header != CSV_COLUMNS:
+            old_path = filepath.with_name("features_old.csv")
+            if old_path.exists():
+                raise FileExistsError(f"Refusing to overwrite existing backup: {old_path}")
+            filepath.replace(old_path)
+    if not filepath.exists() or filepath.stat().st_size == 0:
+        with filepath.open("w", encoding="utf-8", newline="") as stream:
+            csv.writer(stream).writerow(CSV_COLUMNS)
 
 
 def count_existing_csv_rows(filepath: Path) -> int:
@@ -47,26 +63,26 @@ def count_existing_csv_rows(filepath: Path) -> int:
         return 0
 
 
-def append_items_to_csv(filepath: Path, items: List[Item], product: str, quality: str) -> int:
+def append_items_to_csv(filepath: Path, items: List[Item], product: str, quality: str, group: int = 1) -> int:
     """Appends feature vectors for all detected items to data/features.csv."""
     if not items:
         return 0
 
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not filepath.exists() or filepath.stat().st_size == 0
-
+    prepare_csv(filepath)
     with open(filepath, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        if write_header:
-            writer.writerow(CSV_COLUMNS)
 
         for item in items:
             writer.writerow([
+                group,
                 product,
                 quality,
                 f"{item.area:.2f}",
                 f"{item.circularity:.4f}",
                 f"{item.aspect_ratio:.4f}",
+                f"{item.solidity:.4f}",
+                f"{item.edge_density:.4f}",
+                f"{item.v_std:.2f}",
                 f"{item.mean_hsv[0]:.2f}",
                 f"{item.mean_hsv[1]:.2f}",
                 f"{item.mean_hsv[2]:.2f}",
@@ -128,11 +144,13 @@ def main() -> None:
         sys.exit(1)
 
     # Labeling state
+    prepare_csv(CSV_PATH)
     current_product = "cap"      # 'cap', 'card', 'biscuit'
     current_quality = "good"     # 'good', 'defect'
     rows_saved = count_existing_csv_rows(CSV_PATH)
     last_saved_count = 0
     show_saved_feedback = 0
+    group = 1
 
     print("=" * 65)
     print("  QUALISCAN EXPLORATION & LABELING TOOL")
@@ -144,6 +162,7 @@ def main() -> None:
     print("  [g] Quality: good")
     print("  [d] Quality: defect")
     print("  [SPACE] Save feature row for all visible items to features.csv")
+    print("  [n] Start a new capture group")
     print("  [q / ESC] Quit")
     print("=" * 65)
 
@@ -220,6 +239,7 @@ def main() -> None:
         status_line = (
             f"PRODUCT: [{current_product.upper()}] (1/2/3)  |  "
             f"QUALITY: [{current_quality.upper()}] (g/d)  |  "
+            f"GROUP: {group} (n)  |  "
             f"SAVED: {rows_saved}  |  "
             f"ITEMS IN VIEW: {len(items)}"
         )
@@ -252,8 +272,10 @@ def main() -> None:
             current_quality = "good"
         elif key in (ord("d"), ord("D")):
             current_quality = "defect"
+        elif key in (ord("n"), ord("N")):
+            group += 1
         elif key == 32:  # SPACE
-            added = append_items_to_csv(CSV_PATH, items, current_product, current_quality)
+            added = append_items_to_csv(CSV_PATH, items, current_product, current_quality, group)
             if added > 0:
                 rows_saved += added
                 last_saved_count = added

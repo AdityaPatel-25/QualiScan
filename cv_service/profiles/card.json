@@ -1,0 +1,15 @@
+{
+  "product": "card",
+  "_note": "PLACEHOLDER thresholds; calibrate with production samples.",
+  "min_area": 800,
+  "max_area": 35000,
+  "h_range": [0, 180],
+  "s_range": [0, 255],
+  "v_range": [40, 255],
+  "circularity_range": [0.1, 0.95],
+  "aspect_ratio_range": [1.2, 2.2],
+  "solidity_range": [0.85, 1.0],
+  "max_skew_deg": 8,
+  "max_diff_ratio": 0.12,
+  "enabled_checks": ["size", "color", "shape", "orientation", "template_match"]
+}

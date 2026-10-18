@@ -1,0 +1,14 @@
+{
+  "product": "cap",
+  "_note": "PLACEHOLDER thresholds; calibrate with production samples.",
+  "min_area": 800,
+  "max_area": 35000,
+  "h_range": [0, 180],
+  "s_range": [0, 255],
+  "v_range": [40, 255],
+  "circularity_range": [0.65, 1.05],
+  "aspect_ratio_range": [0.8, 1.3],
+  "solidity_range": [0.85, 1.0],
+  "min_solidity": 0.85,
+  "enabled_checks": ["size", "color", "shape", "dent"]
+}

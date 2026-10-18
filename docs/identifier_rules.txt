@@ -1,0 +1,7 @@
+|--- circularity <= 1.54
+|   |--- class: cap
+|--- circularity >  1.54
+|   |--- aspect_ratio <= 4.46
+|   |   |--- class: card
+|   |--- aspect_ratio >  4.46
+|   |   |--- class: biscuit

@@ -33,6 +33,10 @@ class Item:
     circularity: float
     aspect_ratio: float
     mean_hsv: Tuple[float, float, float]
+    solidity: float = 0.0
+    edge_density: float = 0.0
+    v_std: float = 0.0
+    crop: Optional[np.ndarray] = None
 
 
 def segment_items(
@@ -91,6 +95,8 @@ def segment_items(
 
     # Convert BGR to HSV once for color sampling
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    value_frame = hsv_frame[:, :, 2]
+    edges = cv2.Canny(gray, 50, 150)
     h_frame, w_frame = frame.shape[:2]
     frame_area = float(h_frame * w_frame)
 
@@ -138,6 +144,11 @@ def segment_items(
         cv2.drawContours(contour_mask, [cnt], -1, 255, -1)
         mean_vals = cv2.mean(hsv_frame, mask=contour_mask)
         mean_hsv = (round(float(mean_vals[0]), 2), round(float(mean_vals[1]), 2), round(float(mean_vals[2]), 2))
+        hull_area = float(cv2.contourArea(cv2.convexHull(cnt)))
+        solidity = area / hull_area if hull_area > 0 else 0.0
+        edge_density = float(cv2.countNonZero(cv2.bitwise_and(edges, edges, mask=contour_mask))) / max(1, cv2.countNonZero(contour_mask))
+        v_std = float(np.std(value_frame[contour_mask > 0]))
+        crop = frame[y:y + h, x:x + w].copy()
 
         items.append(Item(
             contour=cnt,
@@ -146,7 +157,11 @@ def segment_items(
             area=round(area, 2),
             circularity=round(circularity, 4),
             aspect_ratio=round(aspect_ratio, 4),
-            mean_hsv=mean_hsv
+            mean_hsv=mean_hsv,
+            solidity=round(solidity, 4),
+            edge_density=round(edge_density, 4),
+            v_std=round(v_std, 2),
+            crop=crop
         ))
 
     return items, mask
