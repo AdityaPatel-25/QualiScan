@@ -29,7 +29,7 @@ Flow: Camera -> Python CV -> REST -> Spring Boot -> WebSocket -> React.
 - When done, list every file created or changed and the exact commands to run it.
 
 ## Status
-Done: Days 1-3 code, Day 4 backend core. Current: Day 5 (alerts, WebSocket, Python client).
+Done: Days 1-4. Current: Day 5 part A done (alerts, WebSocket, shifts). Next: Day 5 part B (Python client).
 
 ## Backend rules (backend/)
 - Java 17, Spring Boot 3.x, Maven (use the wrapper: .\mvnw.cmd on Windows), package com.qualiscan.

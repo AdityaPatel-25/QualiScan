@@ -19,6 +19,10 @@ qualiscan:
     secret: ${JWT_SECRET:QualiScan-Development-Only-Secret-Change-Me-1234567890}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
   upload-dir: ${UPLOAD_DIR:./uploads/snapshots}
+  alerts:
+    min-sample: ${ALERTS_MIN_SAMPLE:20}
+  shifts:
+    zone: ${SHIFTS_ZONE:Asia/Kolkata}
 ---
 spring:
   config:

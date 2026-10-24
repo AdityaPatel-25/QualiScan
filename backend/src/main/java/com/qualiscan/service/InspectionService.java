@@ -7,6 +7,8 @@ import com.qualiscan.domain.Verdict;
 import com.qualiscan.repo.BatchRepository;
 import com.qualiscan.repo.InspectionRepository;
 import com.qualiscan.repo.ProductionLineRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -28,25 +30,33 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Service managing defect inspections, search queries, and snapshot file storage/retrieval.
+ * Service managing defect inspections, search queries, snapshot storage, and alert/realtime triggers.
  */
 @Service
 @Transactional
 public class InspectionService {
 
+    private static final Logger log = LoggerFactory.getLogger(InspectionService.class);
+
     private final InspectionRepository inspectionRepository;
     private final ProductionLineRepository lineRepository;
     private final BatchRepository batchRepository;
+    private final AlertService alertService;
+    private final RealtimePublisher realtimePublisher;
     private final Path uploadDir;
 
     public InspectionService(
             InspectionRepository inspectionRepository,
             ProductionLineRepository lineRepository,
             BatchRepository batchRepository,
+            AlertService alertService,
+            RealtimePublisher realtimePublisher,
             @Value("${qualiscan.upload-dir}") String uploadDir) {
         this.inspectionRepository = inspectionRepository;
         this.lineRepository = lineRepository;
         this.batchRepository = batchRepository;
+        this.alertService = alertService;
+        this.realtimePublisher = realtimePublisher;
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -63,7 +73,7 @@ public class InspectionService {
     ) {}
 
     /**
-     * Records a new inspection result and saves the snapshot image if provided.
+     * Records a new inspection result, evaluates quality alerts, and broadcasts realtime updates.
      */
     public InspectionResult recordInspection(Long lineId, InspectionData data, MultipartFile snapshot) {
         ProductionLine line = lineRepository.findById(lineId)
@@ -96,7 +106,24 @@ public class InspectionService {
                 data.inspectedAt()
         );
 
-        return inspectionRepository.save(result);
+        InspectionResult saved = inspectionRepository.save(result);
+
+        // 1. Evaluate alerts right after saving (catch and log so inspection POST never fails)
+        try {
+            alertService.evaluate(line, saved.getProductType());
+        } catch (Exception e) {
+            log.error("Failed to evaluate alerts after inspection {}: {}", saved.getId(), e.getMessage(), e);
+        }
+
+        // 2. Publish realtime STOMP updates (catch and log so inspection POST never fails)
+        try {
+            realtimePublisher.publishInspection(saved);
+            realtimePublisher.publishStats(line.getId());
+        } catch (Exception e) {
+            log.error("Failed to publish realtime WebSocket updates after inspection {}: {}", saved.getId(), e.getMessage(), e);
+        }
+
+        return saved;
     }
 
     /**
@@ -110,7 +137,10 @@ public class InspectionService {
             Instant from,
             Instant to,
             Pageable pageable) {
-        return inspectionRepository.search(lineId, productType, verdict, from, to, pageable);
+        return inspectionRepository.findAll(
+                com.qualiscan.repo.InspectionSpecifications.filter(lineId, productType, verdict, from, to),
+                pageable
+        );
     }
 
     /**
