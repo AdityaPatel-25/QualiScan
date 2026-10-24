@@ -24,3 +24,10 @@ data/snapshots/*
 
 # Internal backup
 .backup_future_phases/
+
+# Backend runtime data and build artifacts
+backend/data/
+backend/uploads/
+target/
+**/target/
+

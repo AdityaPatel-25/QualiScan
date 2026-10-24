@@ -29,5 +29,12 @@ Flow: Camera -> Python CV -> REST -> Spring Boot -> WebSocket -> React.
 - When done, list every file created or changed and the exact commands to run it.
 
 ## Status
-Done: Day 1 (segmentation, explore tool), Day 2 (tracker, trigger line, checks, pipeline).
-Current: Day 3 (product identification, profiles, product-specific checks).
+Done: Days 1-3 code, Day 4 backend core. Current: Day 5 (alerts, WebSocket, Python client).
+
+## Backend rules (backend/)
+- Java 17, Spring Boot 3.x, Maven (use the wrapper: .\mvnw.cmd on Windows), package com.qualiscan.
+- No Lombok. Write plain getters/setters/constructors so I can read and explain every line.
+- Layers: controller -> service -> repository. DTO classes for requests/responses; never expose entities directly.
+- Default profile uses H2 (file database); a "postgres" profile uses PostgreSQL via environment variables. No secrets in code; the JWT secret comes from application.yml or an env variable.
+- Validation with jakarta.validation. Consistent JSON error responses via a @RestControllerAdvice.
+- Every endpoint must have at least one MockMvc or SpringBootTest test.

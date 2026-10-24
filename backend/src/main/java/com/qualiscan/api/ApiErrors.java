@@ -1,0 +1,12 @@
+package com.qualiscan.api;
+import jakarta.servlet.http.HttpServletRequest; import java.time.Instant; import java.util.*; import org.springframework.http.*; import org.springframework.validation.FieldError; import org.springframework.web.bind.MethodArgumentNotValidException; import org.springframework.web.bind.annotation.*; import org.springframework.web.server.ResponseStatusException;
+@RestControllerAdvice public class ApiErrors {
+ @ExceptionHandler(MethodArgumentNotValidException.class) ResponseEntity<Map<String,Object>> validation(MethodArgumentNotValidException ex,HttpServletRequest req){String message=ex.getBindingResult().getFieldErrors().stream().map(e->e.getField()+": "+e.getDefaultMessage()).findFirst().orElse("Validation failed");return error(HttpStatus.BAD_REQUEST,message,req);}
+ @ExceptionHandler(ResponseStatusException.class) ResponseEntity<Map<String,Object>> status(ResponseStatusException ex,HttpServletRequest req){return error(HttpStatus.valueOf(ex.getStatusCode().value()),ex.getReason()==null?"Request failed":ex.getReason(),req);}
+ @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class) ResponseEntity<Map<String,Object>> forbidden(Exception ex,HttpServletRequest req){return error(HttpStatus.FORBIDDEN,"Forbidden",req);}
+ @ExceptionHandler(org.springframework.security.core.AuthenticationException.class) ResponseEntity<Map<String,Object>> unauthenticated(Exception ex,HttpServletRequest req){return error(HttpStatus.UNAUTHORIZED,"Unauthorized",req);}
+ @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class) ResponseEntity<Map<String,Object>> unreadable(Exception ex,HttpServletRequest req){return error(HttpStatus.BAD_REQUEST,"Invalid JSON request body",req);}
+ @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class) ResponseEntity<Map<String,Object>> noResource(Exception ex,HttpServletRequest req){return error(HttpStatus.NOT_FOUND,"Resource not found",req);}
+ @ExceptionHandler(Exception.class) ResponseEntity<Map<String,Object>> other(Exception ex,HttpServletRequest req){return error(HttpStatus.INTERNAL_SERVER_ERROR,"Internal server error",req);}
+ private ResponseEntity<Map<String,Object>> error(HttpStatus s,String msg,HttpServletRequest req){Map<String,Object> b=new LinkedHashMap<>();b.put("timestamp",Instant.now());b.put("status",s.value());b.put("error",s.getReasonPhrase());b.put("message",msg);b.put("path",req.getRequestURI());return ResponseEntity.status(s).body(b);}
+}
