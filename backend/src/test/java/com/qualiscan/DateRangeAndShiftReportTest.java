@@ -68,7 +68,7 @@ class DateRangeAndShiftReportTest {
     void testDateRangeFilteringAndShiftReportKnownData() throws Exception {
         // Known data for 2026-10-24
         Instant from = Instant.parse("2026-10-24T00:00:00Z");
-        Instant to = Instant.parse("2026-10-25T00:00:00Z");
+        Instant to = Instant.parse("2099-01-01T00:00:00Z");
 
         // 1. In-range inspection: cap PASS at 06:00
         inspectionRepository.save(new InspectionResult(testLine, null, "track-1", "cap", 0.99, Verdict.PASS, "", 100, 0.8, 1.0, null, Instant.parse("2026-10-24T06:00:00Z")));
@@ -81,7 +81,7 @@ class DateRangeAndShiftReportTest {
         // 5. In-range boundary inspection: cap PASS at exactly from (00:00:00Z) -> INCLUSIVE
         inspectionRepository.save(new InspectionResult(testLine, null, "track-5", "cap", 0.99, Verdict.PASS, "", 101, 0.8, 1.0, null, from));
 
-        // 6. Out-of-range boundary inspection: cap PASS at exactly to (2026-10-25T00:00:00Z) -> EXCLUSIVE
+        // 6. Out-of-range boundary inspection: cap PASS at exactly to (2099-01-01T00:00:00Z) -> EXCLUSIVE
         inspectionRepository.save(new InspectionResult(testLine, null, "track-6-out", "cap", 0.99, Verdict.PASS, "", 100, 0.8, 1.0, null, to));
         // 7. Out-of-range before from inspection: cap PASS at 2026-10-23T23:59:59Z -> EXCLUDED
         inspectionRepository.save(new InspectionResult(testLine, null, "track-7-out", "cap", 0.99, Verdict.PASS, "", 100, 0.8, 1.0, null, Instant.parse("2026-10-23T23:59:59Z")));
@@ -98,8 +98,8 @@ class DateRangeAndShiftReportTest {
         // Step 1 assert: GET /api/inspections with from and to returns exactly the 5 in-range rows (from inclusive, to exclusive)
         mvc.perform(get("/api/inspections")
                         .param("lineId", String.valueOf(lineId))
-                        .param("from", "2026-10-24T00:00:00Z")
-                        .param("to", "2026-10-25T00:00:00Z")
+                        .param("from", from.toString())
+                        .param("to", to.toString())
                         .header("Authorization", "Bearer " + supervisorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(5));
@@ -107,8 +107,8 @@ class DateRangeAndShiftReportTest {
         // Combined filter assert: lineId + from + to + productType="cap" + verdict="REJECT" -> exactly 1 row ("track-2")
         mvc.perform(get("/api/inspections")
                         .param("lineId", String.valueOf(lineId))
-                        .param("from", "2026-10-24T00:00:00Z")
-                        .param("to", "2026-10-25T00:00:00Z")
+                        .param("from", from.toString())
+                        .param("to", to.toString())
                         .param("productType", "cap")
                         .param("verdict", "REJECT")
                         .header("Authorization", "Bearer " + supervisorToken))
@@ -119,14 +119,14 @@ class DateRangeAndShiftReportTest {
         // Step 1 assert: POST /api/reports/shift for the same range returns exact numbers:
         // total: 5, pass: 2, reject: 2, unknown: 1
         // defectRate = 2 / (2 + 2) = 0.50 (UNKNOWN excluded from denominator)
-        // Since 'to' (2026-10-25T00:00:00Z) is in the future, it must return partial: true, id: null, and NOT persist
+        // Since 'to' (2099-01-01T00:00:00Z) is in the future, it must return partial: true, id: null, and NOT persist
         String reportRes = mvc.perform(post("/api/reports/shift")
                         .param("lineId", String.valueOf(lineId))
-                        .param("from", "2026-10-24T00:00:00Z")
-                        .param("to", "2026-10-25T00:00:00Z")
+                        .param("from", from.toString())
+                        .param("to", to.toString())
                         .header("Authorization", "Bearer " + supervisorToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.shiftName").value("Custom 2026-10-24T05:30:00+05:30 to 2026-10-25T05:30:00+05:30"))
+                .andExpect(jsonPath("$.shiftName").value("Custom 2026-10-24T05:30:00+05:30 to 2099-01-01T05:30:00+05:30"))
                 .andExpect(jsonPath("$.partial").value(true))
                 .andExpect(jsonPath("$.total").value(5))
                 .andExpect(jsonPath("$.pass").value(2))
@@ -145,8 +145,8 @@ class DateRangeAndShiftReportTest {
         // Repeated call for future-ending period also returns no stored row and partial: true
         mvc.perform(post("/api/reports/shift")
                         .param("lineId", String.valueOf(lineId))
-                        .param("from", "2026-10-24T00:00:00Z")
-                        .param("to", "2026-10-25T00:00:00Z")
+                        .param("from", from.toString())
+                        .param("to", to.toString())
                         .header("Authorization", "Bearer " + supervisorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.partial").value(true));
