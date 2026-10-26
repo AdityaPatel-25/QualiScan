@@ -31,3 +31,11 @@ backend/uploads/
 target/
 **/target/
 
+# Frontend dependencies, dist, and local environment
+frontend/node_modules/
+frontend/dist/
+dist/
+**/dist/
+frontend/.env
+frontend/.env.local
+.env
