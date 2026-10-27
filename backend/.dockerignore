@@ -5,3 +5,5 @@ uploads/
 .git/
 .gitignore
 *.log
+.mvn/maven.config
+maven-settings.xml
