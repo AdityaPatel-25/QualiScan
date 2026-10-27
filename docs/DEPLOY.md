@@ -30,7 +30,7 @@ Deploy the Spring Boot backend as a Docker Web Service on Render.
 | `PORT` | `8080` | Render assigns this dynamically; backend binds via `server.port=${PORT:8080}`. |
 | `JWT_SECRET` | `MySecretSigningKeyWithAtLeast32BytesOfEntropy!` | Secret key for HS256 JWT tokens. Must be at least 32 characters. |
 | `DEMO_OPERATOR_PASSWORD` | `DemoOperatorPass2026!` | Password for the public read-only operator account (minimum 12 characters). |
-| `CORS_ALLOWED_ORIGINS` | `https://qualiscan.vercel.app,http://localhost:5173` | Comma-separated list of permitted origins for REST and WebSocket STOMP. |
+| `CORS_ALLOWED_ORIGINS` | `https://quali-scan.vercel.app,https://qualiscan.vercel.app,http://localhost:5173` | Comma-separated list of permitted origins for REST and WebSocket STOMP. |
 | `JAVA_TOOL_OPTIONS` | `-Xmx300m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k` | Tunes JVM memory to reliably run inside Render's 512 MB memory boundary. |
 
 ---

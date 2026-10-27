@@ -16,6 +16,6 @@ services:
       - key: DEMO_OPERATOR_PASSWORD
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
-        value: https://qualiscan.vercel.app,http://localhost:5173
+        value: https://quali-scan.vercel.app,https://qualiscan.vercel.app,http://localhost:5173
       - key: JAVA_TOOL_OPTIONS
         value: -Xmx300m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k
