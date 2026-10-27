@@ -16,7 +16,7 @@ COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 
 # Ensure wrapper script is executable and resolve dependencies
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+RUN chmod +x mvnw && (./mvnw dependency:go-offline -B || true)
 
 # Copy application source code and compile production JAR
 COPY src/ src/
