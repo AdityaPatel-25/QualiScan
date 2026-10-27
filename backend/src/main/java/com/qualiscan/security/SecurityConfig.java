@@ -21,17 +21,19 @@ public class SecurityConfig {
             ).addFilterBefore(device,UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(jwt,DeviceFilter.class).build();
     }
-    @Bean CorsConfigurationSource corsConfigurationSource(@org.springframework.beans.factory.annotation.Value("${qualiscan.cors.allowed-origins:http://localhost:5173,http://localhost:3000}") String allowedOriginsStr){
+    @Bean CorsConfigurationSource corsConfigurationSource(@org.springframework.beans.factory.annotation.Value("${qualiscan.cors.allowed-origins:https://quali-scan.vercel.app,https://qualiscan.vercel.app,http://localhost:5173,http://localhost:3000}") String allowedOriginsStr){
         CorsConfiguration c=new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOriginsStr.split(","))
+        List<String> origins = new ArrayList<>(Arrays.stream(allowedOriginsStr.split(","))
             .map(String::trim)
             .filter(s -> !s.isEmpty())
-            .toList();
-        if (origins.contains("*")) {
-            c.setAllowedOriginPatterns(List.of("*"));
-        } else {
-            c.setAllowedOrigins(origins);
+            .toList());
+        if (!origins.contains("https://*.vercel.app")) {
+            origins.add("https://*.vercel.app");
         }
+        if (!origins.contains("http://localhost:*")) {
+            origins.add("http://localhost:*");
+        }
+        c.setAllowedOriginPatterns(origins);
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);

@@ -43,17 +43,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Plain WebSocket endpoint /ws with permitted CORS origins
-        java.util.List<String> origins = java.util.Arrays.stream(allowedOriginsStr.split(","))
+        java.util.List<String> origins = new java.util.ArrayList<>(java.util.Arrays.stream(allowedOriginsStr.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .toList();
+                .toList());
+        if (!origins.contains("https://*.vercel.app")) {
+            origins.add("https://*.vercel.app");
+        }
+        if (!origins.contains("http://localhost:*")) {
+            origins.add("http://localhost:*");
+        }
 
         var registration = registry.addEndpoint("/ws");
-        if (origins.contains("*")) {
-            registration.setAllowedOriginPatterns("*");
-        } else {
-            registration.setAllowedOrigins(origins.toArray(new String[0]));
-        }
+        registration.setAllowedOriginPatterns(origins.toArray(new String[0]));
     }
 
     @Override
