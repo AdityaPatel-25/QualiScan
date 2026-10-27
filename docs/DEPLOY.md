@@ -66,7 +66,7 @@ Client-side routes (such as `/live`, `/history`, `/alerts`, `/reports`, `/settin
 | `VITE_API_URL` | `https://qualiscan-backend.onrender.com` | Full HTTPS URL of the hosted Render backend. |
 | `VITE_DEMO_MODE` | `true` | Enables the top demo banner, cold-start waking detection, and demo login card. |
 | `VITE_REPO_URL` | `https://github.com/AdityaPatel-25/QualiScan` | GitHub repository link displayed in the demo banner. |
-| `VITE_DEMO_OPERATOR_PASSWORD` | `DemoOperatorPass2026!` | Populated in the login card for one-click "Fill in" access. Must match `DEMO_OPERATOR_PASSWORD`. |
+| `VITE_DEMO_OPERATOR_PASSWORD` | `VXY0Fcz09ng#!gUY` | Populated in the login card for one-click "Fill in" access. Must match `DEMO_OPERATOR_PASSWORD`. |
 
 ---
 
