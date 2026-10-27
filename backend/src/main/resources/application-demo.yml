@@ -1,0 +1,22 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:qualiscan;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create
+    open-in-view: false
+
+qualiscan:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  upload-dir: ${UPLOAD_DIR:./data/demo-uploads/snapshots}
+
+demo:
+  simulator:
+    enabled: true

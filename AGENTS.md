@@ -29,7 +29,7 @@ Flow: Camera -> Python CV -> REST -> Spring Boot -> WebSocket -> React.
 - When done, list every file created or changed and the exact commands to run it.
 
 ## Status
-Done: Days 1-6 code. Next: Day 7 (testing, Docker, README, demo)
+Done: Days 1-8 (core CV, full Spring Boot backend, React live dashboard, Docker containerization, benchmarks, demo Spring profile, live simulated stream, demo frontend with cold-start recovery). Next: Production hosting on Render and Vercel.
 
 ## Backend rules (backend/)
 - Java 17, Spring Boot 3.x, Maven (use the wrapper: .\mvnw.cmd on Windows), package com.qualiscan.

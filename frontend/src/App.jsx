@@ -10,6 +10,8 @@ import { AlertsPage } from "./pages/AlertsPage.jsx";
 import { ReportsPage } from "./pages/ReportsPage.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
 import { getLinesApi } from "./api/endpoints.js";
+import { DemoBanner } from "./components/DemoBanner.jsx";
+import { ColdStartNotice } from "./components/ColdStartNotice.jsx";
 
 import "./styles/index.css";
 import "./styles/components.css";
@@ -161,6 +163,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <DemoBanner />
+        <ColdStartNotice />
         <AppContent />
       </AuthProvider>
     </BrowserRouter>

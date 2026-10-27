@@ -95,3 +95,29 @@ Aggregates shift performance over a time window:
 - Tracks `total`, `pass`, `reject`, `unknown`, `defectRate`, `byProductJson`, and `defectsByTypeJson`.
 - Idempotent: `POST /api/reports/shift` returns existing summary if already generated for `(lineId, from, to)`.
 - Scheduled execution: cron job at 06:00, 14:00, 22:00 in `qualiscan.shifts.zone` (default `Asia/Kolkata`) automatically generates summaries for shifts A (06:00-14:00), B (14:00-22:00), and C (22:00-06:00).
+
+## Demo Profile & Cloud Hosting
+
+For public hosting (e.g. Render free-tier or public demonstrations):
+- Set `SPRING_PROFILES_ACTIVE=demo`
+- In-memory H2 database (`jdbc:h2:mem:qualiscan;DB_CLOSE_DELAY=-1`, schema created automatically).
+- Server port dynamically bound via `server.port=${PORT:8080}`.
+- Dynamic CORS origins configured via `CORS_ALLOWED_ORIGINS`.
+- Public health probe: `GET /api/health` returning `{"status":"UP"}` without authentication.
+- Single read-only operator account seeded from `DEMO_OPERATOR_PASSWORD` (minimum 12 characters, never creates admin or supervisor).
+- Live simulator (`demo.simulator.enabled=true`) generating synthetic inspections every 3 to 5 seconds on a 10-minute oscillating sine wave (5% to 30% defect rate).
+- In-memory rate limiting: limits login attempts to 10 per minute per IP, responding with `429 Too Many Requests` on subsequent attempts.
+- Automated retention cleanup: maintains at most 5,000 inspection records and 100 snapshot files on disk.
+
+### JVM Memory Tuning (512 MB Free-Tier Instances)
+
+When deploying on resource-constrained containers (such as Render 512 MB free tier), configure JVM memory using `JAVA_TOOL_OPTIONS`:
+
+```bash
+JAVA_TOOL_OPTIONS="-Xmx300m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
+```
+
+- `-Xmx300m`: Constrains the maximum heap size to 300 MB, reserving ~212 MB for Metaspace, threads, native memory, and OS buffers.
+- `-XX:+UseSerialGC`: Low-overhead single-threaded garbage collector optimized for single-core or memory-constrained containers, eliminating multi-threaded GC overhead.
+- `-XX:MaxMetaspaceSize=128m`: Caps class metadata footprint to prevent out-of-memory container termination.
+

@@ -9,4 +9,9 @@ public class StatusController {
     public Map<String, String> status() {
         return Map.of("application", "QualiScan backend", "status", "running");
     }
+
+    @GetMapping("/api/health")
+    public Map<String, String> health() {
+        return Map.of("status", "UP");
+    }
 }

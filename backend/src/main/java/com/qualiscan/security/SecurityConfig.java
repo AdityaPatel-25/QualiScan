@@ -5,8 +5,40 @@ import org.springframework.context.annotation.*; import org.springframework.http
 public class SecurityConfig {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean UserDetailsService userDetailsService(AppUserRepository users){return username->users.findByUsername(username).map(u->User.withUsername(u.getUsername()).password(u.getPasswordHash()).roles(u.getRole().name()).disabled(!u.isEnabled()).build()).orElseThrow(()->new UsernameNotFoundException("User not found"));}
- @Bean SecurityFilterChain filterChain(HttpSecurity http,JwtFilter jwt,DeviceFilter device)throws Exception{return http.csrf(c->c.disable()).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(a->a.requestMatchers("/api/auth/login","/ws","/ws/**","/ws-test.html").permitAll().requestMatchers(HttpMethod.POST,"/api/inspections").hasRole("DEVICE").requestMatchers(HttpMethod.GET,"/api/profiles","/api/profiles/*").hasAnyRole("DEVICE","ADMIN","SUPERVISOR","OPERATOR").requestMatchers("/api/admin/**").hasRole("ADMIN").requestMatchers("/api/lines/**").hasAnyRole("ADMIN","SUPERVISOR","OPERATOR").requestMatchers("/api/**").authenticated().anyRequest().permitAll()).exceptionHandling(e->e.authenticationEntryPoint((req,res,ex)->SecurityErrors.write(res,401,"Unauthorized",req.getRequestURI())).accessDeniedHandler((req,res,ex)->SecurityErrors.write(res,403,"Forbidden",req.getRequestURI()))).addFilterBefore(device,UsernamePasswordAuthenticationFilter.class).addFilterAfter(jwt,DeviceFilter.class).build();}
- @Bean CorsConfigurationSource corsConfigurationSource(){CorsConfiguration c=new CorsConfiguration();c.setAllowedOrigins(List.of("http://localhost:5173","http://localhost:3000"));c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));c.setAllowedHeaders(List.of("*"));c.setAllowCredentials(true);UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource();s.registerCorsConfiguration("/**",c);return s;}
+    @Bean SecurityFilterChain filterChain(HttpSecurity http,JwtFilter jwt,DeviceFilter device)throws Exception{
+        return http.csrf(c->c.disable()).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a->a
+                .requestMatchers("/api/auth/login","/api/health","/ws","/ws/**","/ws-test.html").permitAll()
+                .requestMatchers(HttpMethod.POST,"/api/inspections").hasRole("DEVICE")
+                .requestMatchers(HttpMethod.GET,"/api/profiles","/api/profiles/*").hasAnyRole("DEVICE","ADMIN","SUPERVISOR","OPERATOR")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/lines/**").hasAnyRole("ADMIN","SUPERVISOR","OPERATOR")
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().permitAll()
+            ).exceptionHandling(e->e
+                .authenticationEntryPoint((req,res,ex)->SecurityErrors.write(res,401,"Unauthorized",req.getRequestURI()))
+                .accessDeniedHandler((req,res,ex)->SecurityErrors.write(res,403,"Forbidden",req.getRequestURI()))
+            ).addFilterBefore(device,UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwt,DeviceFilter.class).build();
+    }
+    @Bean CorsConfigurationSource corsConfigurationSource(@org.springframework.beans.factory.annotation.Value("${qualiscan.cors.allowed-origins:http://localhost:5173,http://localhost:3000}") String allowedOriginsStr){
+        CorsConfiguration c=new CorsConfiguration();
+        List<String> origins = Arrays.stream(allowedOriginsStr.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
+        if (origins.contains("*")) {
+            c.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            c.setAllowedOrigins(origins);
+        }
+        c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        c.setAllowedHeaders(List.of("*"));
+        c.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource();
+        s.registerCorsConfiguration("/**",c);
+        return s;
+    }
 }
 @Component class DeviceFilter extends OncePerRequestFilter {
  private final ProductionLineRepository lines; DeviceFilter(ProductionLineRepository lines){this.lines=lines;}

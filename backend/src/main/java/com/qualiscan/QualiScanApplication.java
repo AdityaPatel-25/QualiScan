@@ -15,7 +15,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class QualiScanApplication {
     public static void main(String[] args) { SpringApplication.run(QualiScanApplication.class, args); }
 
-    @Bean CommandLineRunner seed(AppUserRepository users, ProductionLineRepository lines, ProductProfileRepository profiles, PasswordEncoder encoder) {
+    @Bean
+    @org.springframework.context.annotation.Profile("!demo")
+    CommandLineRunner seed(AppUserRepository users, ProductionLineRepository lines, ProductProfileRepository profiles, PasswordEncoder encoder) {
         return args -> {
             if (users.count() == 0) {
                 users.save(new AppUser("admin", encoder.encode("Admin@123"), Role.ADMIN));

@@ -31,16 +31,29 @@ import java.util.List;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
+    private final String allowedOriginsStr;
 
-    public WebSocketConfig(JwtService jwtService) {
+    public WebSocketConfig(
+            JwtService jwtService,
+            @org.springframework.beans.factory.annotation.Value("${qualiscan.cors.allowed-origins:http://localhost:5173,http://localhost:3000}") String allowedOriginsStr) {
         this.jwtService = jwtService;
+        this.allowedOriginsStr = allowedOriginsStr;
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Plain WebSocket endpoint /ws with permitted CORS origins
-        registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:5173", "http://localhost:3000");
+        java.util.List<String> origins = java.util.Arrays.stream(allowedOriginsStr.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        var registration = registry.addEndpoint("/ws");
+        if (origins.contains("*")) {
+            registration.setAllowedOriginPatterns("*");
+        } else {
+            registration.setAllowedOrigins(origins.toArray(new String[0]));
+        }
     }
 
     @Override

@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 
-export function LoginPage() {
+export function LoginPage({
+  isDemoMode = String(import.meta.env.VITE_DEMO_MODE).toLowerCase() === "true",
+  demoPassword = import.meta.env.VITE_DEMO_OPERATOR_PASSWORD || "ValidLongDemoPassword123!"
+} = {}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -84,7 +87,7 @@ export function LoginPage() {
               className="form-input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. supervisor"
+              placeholder="e.g. operator"
               autoComplete="username"
               disabled={submitting}
               required
@@ -125,33 +128,65 @@ export function LoginPage() {
           </button>
         </form>
 
-        {/* Quick Demo Credentials Footer */}
-        <div className="demo-credentials-section">
-          <span className="demo-label">Demo Station Accounts:</span>
-          <div className="demo-pills-row">
+        {/* Read-Only Public Demo Account Card */}
+        {isDemoMode && (
+          <div className="demo-account-card" data-testid="demo-account-card">
+            <div className="demo-account-header">
+              <span className="demo-badge-readonly">Public Demo Account (Read-Only)</span>
+              <p className="demo-account-desc">
+                This instance is a public demonstration station with simulated live data. Mutating actions are restricted.
+              </p>
+            </div>
+            <div className="demo-account-creds">
+              <div className="demo-cred-row">
+                <span className="demo-cred-label">User:</span>
+                <code className="demo-cred-value" data-testid="demo-operator-user">operator</code>
+              </div>
+              <div className="demo-cred-row">
+                <span className="demo-cred-label">Password:</span>
+                <code className="demo-cred-value" data-testid="demo-operator-pass">{demoPassword}</code>
+              </div>
+            </div>
             <button
               type="button"
-              className="demo-pill"
-              onClick={() => fillCredentials("admin", "Admin@123")}
+              className="btn-demo-fill"
+              data-testid="demo-fill-button"
+              onClick={() => fillCredentials("operator", demoPassword)}
             >
-              admin
-            </button>
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => fillCredentials("supervisor", "Super@123")}
-            >
-              supervisor
-            </button>
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => fillCredentials("operator", "Oper@123")}
-            >
-              operator
+              Fill in
             </button>
           </div>
-        </div>
+        )}
+
+        {/* Local Dev Accounts Footer (Hidden in Demo Mode) */}
+        {!isDemoMode && (
+          <div className="demo-credentials-section">
+            <span className="demo-label">Demo Station Accounts:</span>
+            <div className="demo-pills-row">
+              <button
+                type="button"
+                className="demo-pill"
+                onClick={() => fillCredentials("admin", "Admin@123")}
+              >
+                admin
+              </button>
+              <button
+                type="button"
+                className="demo-pill"
+                onClick={() => fillCredentials("supervisor", "Super@123")}
+              >
+                supervisor
+              </button>
+              <button
+                type="button"
+                className="demo-pill"
+                onClick={() => fillCredentials("operator", "Oper@123")}
+              >
+                operator
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

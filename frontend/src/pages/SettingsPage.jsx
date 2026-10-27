@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { hasRole } from "../auth/roles.js";
 import {
@@ -100,6 +100,9 @@ export function SettingsPage({ selectedLineId, lines = [] }) {
   const [profileSuccess, setProfileSuccess] = useState(null);
   const [profileError, setProfileError] = useState(null);
 
+  const selectedProfileTypeRef = useRef(selectedProfileType);
+  selectedProfileTypeRef.current = selectedProfileType;
+
   // Load product profiles
   const loadProfiles = useCallback(async () => {
     setLoadingProfiles(true);
@@ -107,7 +110,7 @@ export function SettingsPage({ selectedLineId, lines = [] }) {
       const data = await getProfilesApi();
       const list = Array.isArray(data) ? data : [];
       setProfiles(list);
-      if (list.length > 0 && !selectedProfileType) {
+      if (list.length > 0 && !selectedProfileTypeRef.current) {
         setSelectedProfileType(list[0].productType);
         setRulesEditorText(formatJsonString(list[0].rulesJson));
       }
@@ -116,7 +119,7 @@ export function SettingsPage({ selectedLineId, lines = [] }) {
     } finally {
       setLoadingProfiles(false);
     }
-  }, [selectedProfileType]);
+  }, []);
 
   useEffect(() => {
     loadProfiles();
